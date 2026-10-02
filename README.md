@@ -1,3 +1,8 @@
+> **Unofficial SC64 fork:** experimental SummerCart64 emulation with a local,
+> loopback-only companion connection. See [Windows build and isolated launch
+> instructions](scripts/README-sc64.md). Supply your own ROM separately.
+> Upstream ares and Christopher Bonhage's SC64 proposal are credited there.
+
 <img src="https://github.com/ares-emulator/ares/blob/master/ares/ares/resource/logo@2x.png" width="350"/>
 
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://github.com/higan-emu/ares/blob/master/LICENSE)
