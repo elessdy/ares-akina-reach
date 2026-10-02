@@ -1,0 +1,44 @@
+name: Akina SC64 Windows
+on:
+  workflow_dispatch:
+  push:
+    branches: [master, 'codex/**']
+  pull_request:
+    branches: [master]
+permissions:
+  contents: read
+concurrency:
+  group: akina-windows-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  windows:
+    if: github.repository == 'elessdy/ares-akina-reach'
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Build N64 emulator and run transport tests
+        shell: pwsh
+        run: ./scripts/build-sc64.ps1 -BuildDirectory "$env:RUNNER_TEMP/ares-sc64-build" -Jobs 4
+      - name: Assemble unsigned portable emulator
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $package = "$env:RUNNER_TEMP/ares-akina-reach-windows-x64"
+          New-Item -ItemType Directory -Path $package | Out-Null
+          Copy-Item -Path "$env:RUNNER_TEMP/ares-sc64-build/desktop-ui/rundir/*" -Destination $package -Recurse
+          Copy-Item -LiteralPath LICENSE -Destination "$package/LICENSE.txt"
+          Copy-Item -LiteralPath scripts/Run-SC64.ps1 -Destination $package
+          Copy-Item -LiteralPath scripts/README-sc64.md -Destination $package
+          @("Source: https://github.com/$env:GITHUB_REPOSITORY", "Commit: $env:GITHUB_SHA", "Unsigned experimental N64-only fork. No ROM, game account or server address is bundled.") | Set-Content -LiteralPath "$package/BUILD.txt"
+          Get-ChildItem -LiteralPath $package -File -Recurse | Get-FileHash -Algorithm SHA256 | ForEach-Object {
+            "$($_.Hash.ToLower())  $([IO.Path]::GetRelativePath($package, $_.Path))"
+          } | Set-Content -LiteralPath "$package/SHA256SUMS.txt"
+      - name: Upload portable emulator
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ares-akina-reach-windows-x64
+          path: ${{ runner.temp }}/ares-akina-reach-windows-x64
+          if-no-files-found: error
+          retention-days: 14

@@ -8,6 +8,7 @@ permissions:
   contents: write
 jobs:
   build:
+    if: github.repository == 'ares-emulator/ares'
     name: Build ares (primary)
     uses: ./.github/workflows/build.yml
     secrets: inherit
@@ -15,10 +16,12 @@ jobs:
       codesign: true
       official: ${{ github.ref_name == 'master' || github.ref_type == 'tag' }}
   build-aux:
+    if: github.repository == 'ares-emulator/ares'
     name: Build ares (auxiliary)
     uses: ./.github/workflows/build-aux.yml
     secrets: inherit
   release:
+    if: github.repository == 'ares-emulator/ares'
     name: Release
     needs: build
     secrets: inherit

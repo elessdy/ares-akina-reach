@@ -11,6 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build-project:
+    if: github.repository == 'ares-emulator/ares'
     name: Build ares (primary)
     uses: ./.github/workflows/build.yml
     permissions:
@@ -18,6 +19,7 @@ jobs:
     with:
       official: false
   build-aux:
+    if: github.repository == 'ares-emulator/ares'
     name: Build ares (auxiliary)
     uses: ./.github/workflows/build-aux.yml
     secrets: inherit
