@@ -90,7 +90,9 @@ client. Receive/send work is capped at 64 KiB per emulator poll, at most 64
 commands per poll, outgoing and pre-handshake queues at 64 frames and
 16 MiB + 32 KiB, and input at 16 MiB + 17 + 64 KiB. Memory transfers are capped
 at 16 MiB per command; larger operations need multiple commands. Complete
-outgoing frames are retained through partial writes. No transport worker thread
+outgoing frames are retained through partial writes. Command dispatch waits
+for response byte/frame capacity before consuming input; it resumes when the
+peer drains output. No transport worker thread
 survives close/reopen. Polling pauses when the emulator itself is paused.
 
 Save-state identifier `sc64-akina-1` deliberately rejects upstream and older

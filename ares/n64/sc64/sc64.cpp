@@ -63,8 +63,6 @@ auto SC64::syncHostConnection() -> void {
 auto SC64::pollHost() -> void {
   syncHostConnection();
   hostCommandBudget = MaxCommandsPerPoll;
-  host.poll();
-  syncHostConnection();
 
   auto now = chrono::microsecond();
   if(hostMode == HostMode::Remote && hostConnected) {
@@ -89,7 +87,13 @@ auto SC64::pollHost() -> void {
     hostDataDispatch();
   }
 
+  // Drain commands left by the prior poll before socket sends. This leaves
+  // room for the N64's asynchronous output between polls. Reserve enough
+  // output space before consuming any command; a slow reader applies
+  // backpressure instead of overflowing on a valid burst of commands.
   hostDataDispatch();
+  host.poll();
+  syncHostConnection();
   pollIsViewer();
   syncHostConnection();
 }
@@ -883,6 +887,7 @@ auto SC64::hostDataDirect() -> void {
 
   while(host.hasClient() && hostCommandBudget) {
     if(!usbInput.empty()) return;
+    if(!host.canQueue(MaxHostPayload + 10)) return;
     if(hostInput.size() < headerSize) return;
     if(hostInput[0] != 'C' || hostInput[1] != 'M' || hostInput[2] != 'D') {
       host.disconnectClient();
@@ -920,6 +925,7 @@ auto SC64::hostDataRemote() -> void {
 
   while(host.hasClient() && hostCommandBudget) {
     if(!usbInput.empty()) return;
+    if(!host.canQueue(MaxHostPayload + 10)) return;
     if(hostInput.size() < 4) return;
 
     auto type = readWord(0);

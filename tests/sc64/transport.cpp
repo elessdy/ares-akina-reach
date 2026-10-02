@@ -114,6 +114,25 @@ static auto runTests() -> void {
   server.poll([] {}, [&](const auto& data) { inputBytes += data.size(); });
   require(inputBytes > 0 && inputBytes <= SC64HostSocket::PollByteBudget, "receive budget");
 
+  // Command dispatch reserves the largest supported response before consuming
+  // input. An existing async frame must reduce the available frame slots;
+  // pending commands resume once polling drains that output.
+  require(server.send({0x55}), "queue asynchronous output before commands");
+  size_t admitted = 0;
+  while(server.canQueue(16 * 1024 * 1024 + 10)) {
+    require(server.send({0x76}), "queue admitted command response");
+    ++admitted;
+  }
+  require(admitted == SC64HostSocket::MaxQueuedFrames - 1, "command frame capacity reserves async output");
+  require(server.hasClient(), "backpressure must not disconnect client");
+  poll(server);
+  require(server.canQueue(16 * 1024 * 1024 + 10), "pending command resumes after output drains");
+  std::vector<uint8_t> pendingMemory(64 * 1024, 0x6d);
+  require(server.send(pendingMemory), "queue pending memory response");
+  require(!server.canQueue(16 * 1024 * 1024 + 10), "command byte capacity applies backpressure");
+  poll(server);
+  require(server.canQueue(16 * 1024 * 1024 + 10), "byte capacity recovers after output drains");
+
   // A slow consumer may fill either bound; overflow closes the whole stream.
   for(size_t i = 0; i < SC64HostSocket::MaxQueuedFrames; ++i)
     require(server.send({1, 2, 3}), "queue allowed frame count");

@@ -82,11 +82,15 @@ public:
   auto hasClient() const -> bool { return client != Invalid; }
   auto isStarted() const -> bool { return listener != Invalid; }
 
+  auto canQueue(size_t bytes) const -> bool {
+    return hasClient() && bytes <= MaxQueuedBytes - outputBytes && output.size() < MaxQueuedFrames;
+  }
+
   // Queue a complete frame, or terminate the stream. Never drop arbitrary
   // bytes from a frame, silently overwrite queued data, or grow without bound.
   auto send(const std::vector<uint8_t>& frame) -> bool {
     if(!hasClient()) return false;
-    if(frame.size() > MaxQueuedBytes - outputBytes || output.size() >= MaxQueuedFrames) {
+    if(!canQueue(frame.size())) {
       disconnectClient();
       return false;
     }

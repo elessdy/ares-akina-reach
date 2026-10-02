@@ -87,9 +87,12 @@ class ProtocolTests(unittest.TestCase):
                     sock.sendall(bytes([byte]))
                     time.sleep(0.001)
                 self.assertEqual(response(sock, mode, 'v'), (False, b'SCv2'))
-                sock.sendall(command(mode, 'v') * 130)
-                for _ in range(130):
-                    self.assertEqual(response(sock, mode, 'v'), (False, b'SCv2'))
+                # Cross multiple emulation polls repeatedly, including room
+                # for unrelated asynchronous cartridge output between polls.
+                for _ in range(4):
+                    sock.sendall(command(mode, 'v') * 130)
+                    for _ in range(130):
+                        self.assertEqual(response(sock, mode, 'v'), (False, b'SCv2'))
 
     def test_memory_bounds_before_allocation(self):
         for mode in ('direct', 'remote'):
