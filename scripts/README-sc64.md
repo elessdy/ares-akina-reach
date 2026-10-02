@@ -2,7 +2,9 @@
 
 This is an unofficial ares fork with experimental SummerCart64 emulation.
 It contains emulator changes only. Supply your own ROM and, if needed, a
-separate local bridge. The emulator does not know a game server address.
+separate local bridge. The SC64 socket connects ares to that companion on the
+player's PC; the companion handles the connection to the host-provided game
+server over the network. The emulator contains no game server address.
 SC64 is disabled by default; its TCP port defaults to zero (disabled).
 
 ## Source provenance
@@ -45,9 +47,18 @@ CMake downloads dependencies pinned by version and SHA-256 in `deps.json`.
 Keep that manifest and record the compiler/SDK when reproducing a build; these
 steps do not promise identical binary hashes across different toolchains.
 
-The runtime is `C:/build/ares-sc64/desktop-ui/rundir`. Distribute the whole runtime,
-including its DLLs, `LICENSE`, dependency `licenses/`, `deps.json`, existing
-shader notices/source, launcher, this document and `sc64-build.json`. The manifest records the checkout state, compiler, SDK and executable hash.
+The runtime is `C:/build/ares-sc64/desktop-ui/rundir`. Export a fresh release
+folder using the allowlisted packager:
+
+```powershell
+./scripts/Package-SC64.ps1 -RuntimeDirectory C:/build/ares-sc64/desktop-ui/rundir -OutputDirectory C:/packages/ares-sc64
+```
+
+Distribute that output folder, which includes the executable, runtime DLLs,
+`LICENSE`, dependency `licenses/`, `deps.json`, shader notices/source, launcher,
+this document and `sc64-build.json`. Do not redistribute a runtime folder after
+playing in it: it can contain personal settings, saves or connection history.
+The manifest records the checkout state, compiler, SDK and executable hash.
 Do not distribute a dirty build as though it came only from its recorded commit.
 The source tree retains upstream license notices, third-party licenses and
 source. Matching prebuilt dependencies are `2026-05-30`, Windows x64, SHA-256
@@ -101,6 +112,27 @@ serialized, so do not use save states as transport/session recovery. Ordinary
 cartridge save files remain the existing format. USB save writeback and 64DD
 disk mapping are not implemented, although the inherited protocol acknowledges
 the corresponding commands. Do not treat an acknowledgment as saved data.
+
+## Game server address
+
+The person hosting the game provides its hostname or IP address and port.
+A game companion/launcher must require that address at runtime: no built-in
+server, developer-address fallback, or pre-filled host is distributed in the
+emulator, ROM, examples, build logs, or launcher package. A missing address must
+be requested before connecting. Examples use `HOST:PORT`, never a real host.
+Remembered server choices belong only in that player's local user directory and
+must not enter Git or a release package.
+
+`127.0.0.1:9064` above is the emulated USB connection on the player's own PC,
+not the game-server address. The connection is:
+
+```text
+ROM in ares -> local SC64 connection -> companion -> host-provided game server
+```
+
+The current `Run-SC64.ps1` launches only the emulator. The companion's server
+selection interface is separate work; this requirement does not imply that
+it has already been delivered. Every server can use the same emulator/ROM.
 
 ## Tests
 

@@ -21,20 +21,12 @@ jobs:
       - name: Build N64 emulator and run transport tests
         shell: pwsh
         run: ./scripts/build-sc64.ps1 -BuildDirectory "$env:RUNNER_TEMP/ares-sc64-build" -Jobs 4
+      - name: Test package isolation
+        shell: pwsh
+        run: ./tests/sc64/package.ps1 -WorkDirectory "$env:RUNNER_TEMP/sc64-package-tests"
       - name: Assemble unsigned portable emulator
         shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $package = "$env:RUNNER_TEMP/ares-akina-reach-windows-x64"
-          New-Item -ItemType Directory -Path $package | Out-Null
-          Copy-Item -Path "$env:RUNNER_TEMP/ares-sc64-build/desktop-ui/rundir/*" -Destination $package -Recurse
-          Copy-Item -LiteralPath LICENSE -Destination "$package/LICENSE.txt"
-          Copy-Item -LiteralPath scripts/Run-SC64.ps1 -Destination $package
-          Copy-Item -LiteralPath scripts/README-sc64.md -Destination $package
-          @("Source: https://github.com/$env:GITHUB_REPOSITORY", "Commit: $env:GITHUB_SHA", "Unsigned experimental N64-only fork. No ROM, game account or server address is bundled.") | Set-Content -LiteralPath "$package/BUILD.txt"
-          Get-ChildItem -LiteralPath $package -File -Recurse | Get-FileHash -Algorithm SHA256 | ForEach-Object {
-            "$($_.Hash.ToLower())  $([IO.Path]::GetRelativePath($package, $_.Path))"
-          } | Set-Content -LiteralPath "$package/SHA256SUMS.txt"
+        run: ./scripts/Package-SC64.ps1 -RuntimeDirectory "$env:RUNNER_TEMP/ares-sc64-build/desktop-ui/rundir" -OutputDirectory "$env:RUNNER_TEMP/ares-akina-reach-windows-x64"
       - name: Upload portable emulator
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
